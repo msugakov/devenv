@@ -2,6 +2,7 @@
 
 # Fixes user id and gid to match the ones of launching user on the host
 # Inspired by https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
+# Related https://stackoverflow.com/questions/36781372/docker-using-gosu-vs-user
 
 set -o errexit
 set -o nounset

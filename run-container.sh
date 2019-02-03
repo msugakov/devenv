@@ -15,12 +15,18 @@ echo "Assuming host_uid=${host_uid} host_gid=${host_gid}"
 
 # X11 connection inspired by https://github.com/cmiles74/docker-vscode
 
+#    --mount type=volume,source=devenv-node-modules,target=/usr/lib/node_modules \
+#    --mount type=volume,source=devenv-developer-home,target=/home \
+
 exec docker run \
+    --hostname devenv \
     --interactive \
     --tty \
     --env HOST_UID=$host_uid \
     --env HOST_GID=$host_gid \
-    --mount type=volume,source=devenv-developer-home,target=/home \
+    --publish 8080:8080 \
+    --mount type=volume,source=devenv-home-overlay,target=/home \
+    --mount type=volume,source=devenv-usr-overlay,target=/usr \
     --mount type=bind,source=$HOME/projects,target=/mnt/projects \
     --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix \
     --env DISPLAY=unix${DISPLAY} \
