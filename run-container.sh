@@ -13,4 +13,16 @@ shift
 
 echo "Assuming host_uid=${host_uid} host_gid=${host_gid}"
 
-exec docker run --interactive --tty --env HOST_UID=$host_uid --env HOST_GID=$host_gid --mount type=bind,source=$HOME/projects,target=/mnt/projects node-dev "$@"
+# X11 connection inspired by https://github.com/cmiles74/docker-vscode
+
+exec docker run \
+    --interactive \
+    --tty \
+    --env HOST_UID=$host_uid \
+    --env HOST_GID=$host_gid \
+    --mount type=volume,source=devenv-developer-home,target=/home \
+    --mount type=bind,source=$HOME/projects,target=/mnt/projects \
+    --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix \
+    --env DISPLAY=unix${DISPLAY} \
+    --device /dev/snd \
+    node-dev "$@"
