@@ -7,22 +7,23 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-bootstrap_user=bootstrap-developer
-real_user=developer
+username=developer
 
-first_time_init() {
-    groupmod --gid $HOST_GID $real_user
-    usermod --uid $HOST_UID $real_user
-    rsync --recursive --links --perms --times --one-file-system -og --chown=$real_user:$real_user --progress /home/${bootstrap_user}/ /home/${real_user}
+ids_update() {
+    groupmod --gid $HOST_GID $username
+    usermod --uid $HOST_UID $username
+    chown --no-dereference --recursive -P ${username}:${username} /home/${username}
 }
 
-if [ -z "$(ls -A /home/$real_user)" ] ; then
-    echo "Looks like this is the first time this container is started. Initializing user $real_user..."
-    first_time_init
+current_uid=$(id --user $username)
+
+echo "$username UID is $current_uid, UID of user launching container is $HOST_UID"
+
+if [ "$current_uid" != "$HOST_UID" ] ; then
+    echo "Updating UID+GID for $username..."
+    ids_update
 else
-    echo "Home directory of $real_user is not empty, proceeding without modifications."
+    echo "User UID matches that of the host, looks like we are good to go."
 fi
 
-#find /home/${real_user} -ls
-
-exec /usr/sbin/gosu ${real_user}:${real_user} "$@"
+exec /usr/sbin/gosu ${username}:${username} "$@"

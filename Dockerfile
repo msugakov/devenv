@@ -29,11 +29,11 @@ RUN apt-get install -y code
 RUN mkdir /mnt/projects
 
 # Initialize and jump into developer bootstrap user
-ENV bootstrap_user bootstrap-developer
-RUN groupadd --gid 9876 ${bootstrap_user}
-RUN useradd --create-home --gid 9876 --uid 9876 --shell /usr/bin/zsh ${bootstrap_user}
-USER ${bootstrap_user}
-ENV homedir /home/${bootstrap_user}
+ENV username developer
+RUN groupadd --gid 9876 ${username}
+RUN useradd --create-home --gid 9876 --uid 9876 --shell /usr/bin/zsh ${username}
+USER ${username}
+ENV homedir /home/${username}
 
 # Basic user setup
 RUN git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
@@ -44,19 +44,16 @@ WORKDIR ${homedir}/bootstrap
 RUN git clone https://github.com/msugakov/homedir.git
 RUN homedir/install.sh
 RUN sed -i 's/ZSH_THEME=.*/ZSH_THEME="ys"/g' ${homedir}/.zshrc
+RUN ln -v --symbolic /mnt/projects ${homedir}/projects
 
 # Leave developer and become root again
 USER root
 
-# Prepare for real user
-ENV real_user developer
-RUN groupadd --gid 4321 ${real_user}
-RUN useradd --no-create-home --gid 4321 --uid 4321 --shell /usr/bin/zsh ${real_user}
 # enable sudo for real user
-RUN echo "${real_user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${real_user}
+RUN echo "${username} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${username}
 
 # Final setup before launch
-WORKDIR /home/${real_user}
+WORKDIR ${homedir}
 # Stuff to fix uid and gid of container user
 COPY docker-entrypoint-fix-uid-gid.sh /usr/local/bin/docker-entrypoint-fix-uid-gid.sh
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint-fix-uid-gid.sh"]
