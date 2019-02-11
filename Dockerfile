@@ -1,55 +1,54 @@
+# syntax = docker/dockerfile:experimental
 FROM ubuntu:18.10
+
+# Set for caching apt packages
+# https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/experimental.md
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 
 # Basic stuff
 ENV installer apt-get install -y --no-install-recommends
-RUN apt-get update
-
-# The thing which allows to use apt packages cache and not download same stuff from internet all the time
-# See https://gist.github.com/dergachev/8441335
-# See https://github.com/pmoust/squid-deb-proxy
-# Build that one with `sudo docker build -t apt-proxy .`
-# Run with `sudo docker run --name apt-proxy --rm --mount type=bind,source=/home/mixa/apt-docker-cache,target=/cachedir --publish 38000:8000 apt-proxy`
-RUN ${installer} net-tools netcat-openbsd
-COPY detect-apt-proxy.sh /root
-RUN /root/detect-apt-proxy.sh 38000
+RUN --mount=type=cache,target=/var/cache/apt apt-get update
 
 # Base system
-RUN apt-get update
-RUN apt-get -y upgrade
-RUN apt-get -y dist-upgrade
-RUN ${installer} curl ca-certificates
-RUN ${installer} apt-utils aptitude zsh gnupg rsync sudo openssh-client
+RUN --mount=type=cache,target=/var/cache/apt apt-get update
+RUN --mount=type=cache,target=/var/cache/apt apt-get -y upgrade
+RUN --mount=type=cache,target=/var/cache/apt apt-get -y dist-upgrade
+RUN --mount=type=cache,target=/var/cache/apt ${installer} curl ca-certificates
+RUN --mount=type=cache,target=/var/cache/apt ${installer} apt-utils aptitude zsh gnupg rsync sudo openssh-client less
 
 # some ui stuff TODO: re-enable firefox
-#RUN ${installer} firefox
+#RUN --mount=type=cache,target=/var/cache/apt ${installer} firefox
 
 # dev stuff
-RUN ${installer} git
-RUN ${installer} gcc g++ cmake make
+RUN --mount=type=cache,target=/var/cache/apt ${installer} git
+RUN --mount=type=cache,target=/var/cache/apt ${installer} gcc g++ cmake make
 # To drop priveleges from ENTRYPOINT script
-RUN ${installer} gosu
+RUN --mount=type=cache,target=/var/cache/apt ${installer} gosu
 
 # install node
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
-RUN ${installer} nodejs
+RUN --mount=type=cache,target=/var/cache/apt ${installer} nodejs
 
 # Install VS Code - https://code.visualstudio.com/docs/setup/linux
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
 RUN install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
 RUN sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
-RUN ${installer} apt-transport-https libasound2
-RUN apt-get update
-#RUN ${installer} code
+RUN --mount=type=cache,target=/var/cache/apt ${installer} apt-transport-https libasound2
+RUN --mount=type=cache,target=/var/cache/apt apt-get update
+# TODO: reenable VS Code if need arises
+#RUN --mount=type=cache,target=/var/cache/apt ${installer} code
 
 # Install Yarn - https://yarnpkg.com/en/docs/install#debian-stable
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-RUN apt-get update
-RUN ${installer} yarn
+RUN --mount=type=cache,target=/var/cache/apt apt-get update
+RUN --mount=type=cache,target=/var/cache/apt ${installer} yarn
 
-# Install packages for development
-RUN yarn global add bs-platform
-RUN yarn global add vuepress
+# Install yarn/npm packages for development
+RUN mkdir -p /root/yarn-cache
+RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add bs-platform
+RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add vuepress
+RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add nativescript
 
 # Mount point for host projects
 RUN mkdir /mnt/projects
