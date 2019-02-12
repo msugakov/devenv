@@ -1,0 +1,3 @@
+# Ignore Android SDK files since they are big and we don't want to check them in.
+sdk-tools-linux*
+android-sdk.tgz

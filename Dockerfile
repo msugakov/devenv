@@ -68,8 +68,14 @@ RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/
     nativescript
 
 # Install Android SDK
-# File should be downloaded from https://developer.android.com/studio/#Other
-COPY sdk-tools-linux*.zip /root/
+# File was be downloaded from https://developer.android.com/studio/#Other
+# and then updated with sdkmanager with packages listed in
+# https://docs.nativescript.org/angular/start/ns-setup-linux
+# Ideally, this should be scripted to be done in docker but don't feel too enthusiastic about it at the moment.
+COPY android-sdk.tgz /root/
+RUN tar -xpf /root/android-sdk.tgz --directory /opt
+
+# TODO: set android SDK paths
 
 # Mount point for host projects
 RUN mkdir /mnt/projects
