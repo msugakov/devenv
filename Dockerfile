@@ -7,56 +7,78 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloa
 
 # Basic stuff
 ENV installer apt-get install -y --no-install-recommends
-RUN --mount=type=cache,target=/var/cache/apt apt-get update
 
-# Base system
-RUN --mount=type=cache,target=/var/cache/apt apt-get update
-RUN --mount=type=cache,target=/var/cache/apt apt-get -y upgrade
-RUN --mount=type=cache,target=/var/cache/apt apt-get -y dist-upgrade
-RUN --mount=type=cache,target=/var/cache/apt ${installer} curl ca-certificates
-RUN --mount=type=cache,target=/var/cache/apt ${installer} apt-utils aptitude zsh gnupg rsync sudo openssh-client less
+# Base system, developer stuff and stuff for GUI apps.
+# openjdk-8-jdk is required by Android SDK which does not work on Java 11.
+RUN --mount=type=cache,target=/var/cache/apt apt-get update \
+&& DEBIAN_FRONTEND=noninteractive ${installer} \
+    apt-transport-https \
+    apt-utils \
+    aptitude \
+    ca-certificates \
+    cmake \
+    curl \
+    g++ \
+    gcc \
+    git \
+    gnupg \
+    gosu \
+    less \
+    lib32ncurses6 \
+    lib32z1 \
+    libasound2 \
+    libx11-xcb1 \
+    libxtst6 \
+    make \
+    nano \
+    openjdk-8-jdk \
+    openssh-client \
+    rsync \
+    sudo \
+    unzip \
+    zsh
 
-# some ui stuff TODO: re-enable firefox
-#RUN --mount=type=cache,target=/var/cache/apt ${installer} firefox
+#    firefox
+#     xorg \
+#     android-sdk \
 
-# dev stuff
-RUN --mount=type=cache,target=/var/cache/apt ${installer} git
-RUN --mount=type=cache,target=/var/cache/apt ${installer} gcc g++ cmake make
-# To drop priveleges from ENTRYPOINT script
-RUN --mount=type=cache,target=/var/cache/apt ${installer} gosu
-
-# install node
+# Get node repo
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
-RUN --mount=type=cache,target=/var/cache/apt ${installer} nodejs
 
-# Install VS Code - https://code.visualstudio.com/docs/setup/linux
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-RUN install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
-RUN sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
-RUN --mount=type=cache,target=/var/cache/apt ${installer} apt-transport-https libasound2
-RUN --mount=type=cache,target=/var/cache/apt apt-get update
-# TODO: reenable VS Code if need arises
-#RUN --mount=type=cache,target=/var/cache/apt ${installer} code
+# Get VS Code repo - https://code.visualstudio.com/docs/setup/linux
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && \
+    install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/ && \
+    sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
 
-# Install Yarn - https://yarnpkg.com/en/docs/install#debian-stable
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-RUN --mount=type=cache,target=/var/cache/apt apt-get update
-RUN --mount=type=cache,target=/var/cache/apt ${installer} yarn
+# Get Yarn repo - https://yarnpkg.com/en/docs/install#debian-stable
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add - && \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+
+# Install node, code and yarn
+RUN --mount=type=cache,target=/var/cache/apt apt-get update && ${installer} \
+    nodejs \
+    code \
+    yarn
 
 # Install yarn/npm packages for development
 RUN mkdir -p /root/yarn-cache
-RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add bs-platform
-RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add vuepress
-RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add nativescript
+RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add \
+    bs-platform \
+    vuepress \
+    nativescript
+
+# Install Android SDK
+# File should be downloaded from https://developer.android.com/studio/#Other
+COPY sdk-tools-linux*.zip /root/
 
 # Mount point for host projects
 RUN mkdir /mnt/projects
 
-# Initialize and jump into developer bootstrap user
+# Initialize and jump into developer user. Enable sudo for user.
 ENV username developer
-RUN groupadd --gid 9876 ${username}
-RUN useradd --create-home --gid 9876 --uid 9876 --shell /usr/bin/zsh ${username}
+RUN groupadd --gid 9876 ${username} && \
+    useradd --create-home --gid 9876 --uid 9876 --shell /usr/bin/zsh ${username} && \
+    echo "${username} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${username}
 USER ${username}
 ENV homedir /home/${username}
 
@@ -66,16 +88,13 @@ RUN git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
 # My customizations
 RUN mkdir ${homedir}/bootstrap
 WORKDIR ${homedir}/bootstrap
-RUN git clone https://github.com/msugakov/homedir.git
-RUN homedir/install.sh
-RUN sed -i 's/ZSH_THEME=.*/ZSH_THEME="ys"/g' ${homedir}/.zshrc
-RUN ln -v --symbolic /mnt/projects ${homedir}/projects
+RUN git clone https://github.com/msugakov/homedir.git && \
+    homedir/install.sh && \
+    sed -i 's/ZSH_THEME=.*/ZSH_THEME="ys"/g' ${homedir}/.zshrc && \
+    ln -v --symbolic /mnt/projects ${homedir}/projects
 
 # Leave developer and become root again
 USER root
-
-# enable sudo for real user
-RUN echo "${username} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${username}
 
 # Final setup before launch
 WORKDIR ${homedir}
