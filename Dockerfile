@@ -61,24 +61,26 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update && ${installer} \
     yarn
 
 # Install yarn/npm packages for development
-RUN mkdir -p /root/yarn-cache
-RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add \
-    bs-platform \
-    vuepress \
-    nativescript
+#RUN mkdir -p /root/yarn-cache
+#RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add \
+#    bs-platform \
+#    vuepress \
+#    nativescript \
+#    jest
 
 # Install Android SDK
 # File was be downloaded from https://developer.android.com/studio/#Other
 # and then updated with sdkmanager with packages listed in
 # https://docs.nativescript.org/angular/start/ns-setup-linux
-# Ideally, this should be scripted to be done in docker but don't feel too enthusiastic about it at the moment.
+# TODO: Ideally, this should be scripted to be done in docker but don't feel too enthusiastic about it at the moment.
 COPY android-sdk.tgz /root/
 RUN tar -xpf /root/android-sdk.tgz --directory /opt
 
-# TODO: set android SDK paths
-
 # Mount point for host projects
 RUN mkdir /mnt/projects
+
+RUN mkdir /opt/npm-cache && chmod 777 /opt/npm-cache
+RUN --mount=type=cache,target=/opt/npm-cache chmod 777 /opt/npm-cache
 
 # Initialize and jump into developer user. Enable sudo for user.
 ENV username developer
@@ -88,8 +90,22 @@ RUN groupadd --gid 9876 ${username} && \
 USER ${username}
 ENV homedir /home/${username}
 
+RUN --mount=type=cache,target=/opt/npm-cache npm config set cache /opt/npm-cache && \
+    mkdir ${homedir}/npm-global && npm config set prefix '/${homedir}/npm-global'
+
+RUN --mount=type=cache,target=/opt/npm-cache ls -la /opt/npm-cache
+    #&& \
+RUN --mount=type=cache,target=/opt/npm-cache npm install -g \
+        bs-platform \
+        jest \
+        nativescript \
+        vuepress
+
+RUN --mount=type=cache,target=/opt/npm-cache find /opt/npm-cache -ls
+
 # Basic user setup
 RUN git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
+COPY .extra-zshrc ${homedir}
 
 # My customizations
 RUN mkdir ${homedir}/bootstrap
