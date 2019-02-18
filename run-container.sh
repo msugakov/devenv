@@ -15,8 +15,6 @@ echo "Assuming host_uid=${host_uid} host_gid=${host_gid}"
 
 # X11 connection inspired by https://github.com/cmiles74/docker-vscode
 
-#    --mount type=volume,source=devenv-usr-overlay,target=/usr \
-
 exec docker run \
     --hostname devenv \
     --interactive \

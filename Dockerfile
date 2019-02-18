@@ -15,6 +15,7 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update \
     apt-transport-https \
     apt-utils \
     aptitude \
+    byobu \
     ca-certificates \
     cmake \
     curl \
@@ -31,9 +32,11 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update \
     libxtst6 \
     make \
     nano \
+    net-tools \
     openjdk-8-jdk \
     openssh-client \
     rsync \
+    screen \
     sudo \
     unzip \
     zsh
@@ -60,18 +63,11 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update && ${installer} \
     code \
     yarn
 
-# Install yarn/npm packages for development
-#RUN mkdir -p /root/yarn-cache
-#RUN --mount=type=cache,target=/root/yarn-cache yarn global --cache-folder /root/yarn-cache add \
-#    bs-platform \
-#    vuepress \
-#    nativescript \
-#    jest
-
 # Install Android SDK
 # File was be downloaded from https://developer.android.com/studio/#Other
 # and then updated with sdkmanager with packages listed in
 # https://docs.nativescript.org/angular/start/ns-setup-linux
+# https://developer.android.com/studio/#Other
 # TODO: Ideally, this should be scripted to be done in docker but don't feel too enthusiastic about it at the moment.
 COPY android-sdk.tgz /root/
 RUN tar -xpf /root/android-sdk.tgz --directory /opt
@@ -90,18 +86,16 @@ RUN groupadd --gid 9876 ${username} && \
 USER ${username}
 ENV homedir /home/${username}
 
+# Install node packages. Have to use NPM because bs-platform does not work well with Yarn.
+# Have to install under current user because no luck when doing so from root.
 RUN --mount=type=cache,target=/opt/npm-cache npm config set cache /opt/npm-cache && \
-    mkdir ${homedir}/npm-global && npm config set prefix '/${homedir}/npm-global'
-
-RUN --mount=type=cache,target=/opt/npm-cache ls -la /opt/npm-cache
-    #&& \
-RUN --mount=type=cache,target=/opt/npm-cache npm install -g \
+    mkdir ${homedir}/npm-global && \
+    npm config set prefix '/${homedir}/npm-global' && \
+    npm install -g \
         bs-platform \
         jest \
         nativescript \
         vuepress
-
-RUN --mount=type=cache,target=/opt/npm-cache find /opt/npm-cache -ls
 
 # Basic user setup
 RUN git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
@@ -113,7 +107,12 @@ WORKDIR ${homedir}/bootstrap
 RUN git clone https://github.com/msugakov/homedir.git && \
     homedir/install.sh && \
     sed -i 's/ZSH_THEME=.*/ZSH_THEME="ys"/g' ${homedir}/.zshrc && \
-    ln -v --symbolic /mnt/projects ${homedir}/projects
+    ln -v --symbolic /mnt/projects ${homedir}/projects && \
+    code --install-extension peterjausovec.vscode-docker && \
+    code --install-extension jaredly.reason-vscode && \
+    code --install-extension wayou.vscode-todo-highlight && \
+    code --install-extension mermade.openapi-lint
+
 
 # Leave developer and become root again
 USER root
