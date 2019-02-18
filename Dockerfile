@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:experimental
 FROM ubuntu:18.10
 
-# Set for caching apt packages
+# Setup for caching apt packages
 # https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/experimental.md
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 
@@ -43,7 +43,6 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update \
 
 #    firefox
 #     xorg \
-#     android-sdk \
 
 # Get node repo
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
@@ -67,7 +66,6 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update && ${installer} \
 # File was be downloaded from https://developer.android.com/studio/#Other
 # and then updated with sdkmanager with packages listed in
 # https://docs.nativescript.org/angular/start/ns-setup-linux
-# https://developer.android.com/studio/#Other
 # TODO: Ideally, this should be scripted to be done in docker but don't feel too enthusiastic about it at the moment.
 COPY android-sdk.tgz /root/
 RUN tar -xpf /root/android-sdk.tgz --directory /opt

@@ -1,3 +1,6 @@
+# Provides custom environment variables for the user, speicifc to container.
+# Must be sourced from zshrc/bashrc in explicit way.
+
 export PATH=$HOME/npm-global/bin:$PATH
 export ANDROID_HOME="/opt/android-sdk"
 export PATH="${PATH}:${ANDROID_HOME}/tools/:${ANDROID_HOME}/platform-tools/"

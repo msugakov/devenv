@@ -1,5 +1,5 @@
 # devenv
-Docker image setup for development environment
+Docker image setup for Node.JS development environment.
 
 How to build the damn thing
 ```bash
