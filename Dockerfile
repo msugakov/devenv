@@ -33,6 +33,7 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update \
     make \
     nano \
     net-tools \
+    netcat \
     openjdk-8-jdk \
     openssh-client \
     rsync \
@@ -91,6 +92,7 @@ RUN --mount=type=cache,target=/opt/npm-cache npm config set cache /opt/npm-cache
     npm config set prefix '/${homedir}/npm-global' && \
     npm install -g \
         bs-platform \
+        esy \
         jest \
         nativescript \
         vuepress
