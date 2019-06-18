@@ -107,12 +107,11 @@ WORKDIR ${homedir}/bootstrap
 RUN git clone https://github.com/msugakov/homedir.git && \
     homedir/install.sh && \
     sed -i 's/ZSH_THEME=.*/ZSH_THEME="ys"/g' ${homedir}/.zshrc && \
-    ln -v --symbolic /mnt/projects ${homedir}/projects && \
-    code --install-extension peterjausovec.vscode-docker && \
-    code --install-extension jaredly.reason-vscode && \
-    code --install-extension wayou.vscode-todo-highlight && \
-    code --install-extension mermade.openapi-lint
-
+    ln -v --symbolic /mnt/projects ${homedir}/projects
+    #code --install-extension peterjausovec.vscode-docker && \
+    #code --install-extension jaredly.reason-vscode && \
+    #code --install-extension wayou.vscode-todo-highlight && \
+    #code --install-extension mermade.openapi-lint
 
 # Leave developer and become root again
 USER root
